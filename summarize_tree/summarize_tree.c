@@ -7,12 +7,25 @@
 #include <unistd.h>
 #include <string.h>
 
+// creating max string size for our path
+#define PATH_MAX 4096
+
 static int num_dirs, num_regular;
 
 bool is_dir(const char* path) {
 	struct stat buf;
-	stat(path, &buf);
-	return S_ISDIR(buf.st_mode);
+	if (stat(path, &buf) == 0){
+		if(S_ISDIR(buf.st_mode) > 0){
+			return true;
+		} else {
+		       	return false;
+		}
+	} else {
+		printf("Error calling stat");
+		return 0;
+	}
+}
+
 
   /*
    * Use the stat() function (try "man 2 stat") to determine if the file
@@ -21,7 +34,6 @@ bool is_dir(const char* path) {
    * return value from stat in case there is a problem, e.g., maybe the
    * the file doesn't actually exist.
    */
-}
 
 /* 
  * I needed this because the multiple recursion means there's no way to
@@ -31,6 +43,8 @@ void process_path(const char*);
 
 void process_directory(const char* path) {
 	DIR *dir;
+	// string to store our path for recursive calls
+	//char* current_path = (char*)calloc(sizeof(char), PATH_MAX);
        	struct dirent *dp;
 	chdir(path);
 	dir = opendir(path);
@@ -42,15 +56,15 @@ void process_directory(const char* path) {
 	
 	while ((dp = readdir(dir)) != NULL) {
 		// avoiding infinite looping by disregarding . and .. file names
-		if(!(strcmp(dp->d_name,".")) && (!(strcmp(dp->d_name,"..")))){
-			if(dp->d_type == DT_REG){
-				num_regular++;
-			}
-			else {
-				num_dirs++;
-			}
+		if(((strcmp(dp->d_name,".")) != 0) || ((strcmp(dp->d_name,"..")) != 0)){
+			num_dirs++;
+			//char dir_name[4096];
+			//dir_name = dp->d_name;
+			//strcat(dir_name, "/");
+			process_path(dp->d_name);
 		}
 	}
+	//free(current_path);
 	chdir("..");
 	closedir(dir);
 }
