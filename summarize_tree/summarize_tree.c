@@ -7,25 +7,20 @@
 #include <unistd.h>
 #include <string.h>
 
-// creating max string size for our path
-#define PATH_MAX 4096
 
 static int num_dirs, num_regular;
 
 bool is_dir(const char* path) {
 	struct stat buf;
+
+	// if stat actually works
 	if (stat(path, &buf) == 0){
-		if(S_ISDIR(buf.st_mode) > 0){
-			return true;
-		} else {
-		       	return false;
-		}
+		return S_ISDIR(buf.st_mode);
 	} else {
-		printf("Error calling stat");
+		printf("error in stat function");
 		return 0;
 	}
 }
-
 
   /*
    * Use the stat() function (try "man 2 stat") to determine if the file
@@ -42,31 +37,39 @@ bool is_dir(const char* path) {
 void process_path(const char*);
 
 void process_directory(const char* path) {
+	num_dirs++;
 	DIR *dir;
 	// string to store our path for recursive calls
 	//char* current_path = (char*)calloc(sizeof(char), PATH_MAX);
        	struct dirent *dp;
+
 	chdir(path);
-	dir = opendir(path);
-	// make sure we actually have stuff
+	dir = opendir(".");
+
+	// check to make sure we didn't open a null directory
 	if (dir == NULL) {
+		printf("Error, null directory provided to process_directory");
 		exit(1);
 	}
 	
-	
+	// check to make sure readdir was successful 
+	dp = readdir(dir);
+	if(dp == NULL){
+		printf("Error, cannot read null directory");
+		exit(1);	
+	}
+	else{	
 	while ((dp = readdir(dir)) != NULL) {
 		// avoiding infinite looping by disregarding . and .. file names
-		if(((strcmp(dp->d_name,".")) != 0) || ((strcmp(dp->d_name,"..")) != 0)){
-			num_dirs++;
-			//char dir_name[4096];
-			//dir_name = dp->d_name;
-			//strcat(dir_name, "/");
+		if( (strcmp(dp->d_name,".") != 0) && (strcmp(dp->d_name,"..") != 0)){
 			process_path(dp->d_name);
 		}
 	}
-	//free(current_path);
+	}
 	chdir("..");
+	
 	closedir(dir);
+	
 }
 
 
