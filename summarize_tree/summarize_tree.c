@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <sys/types.h>
 #include <sys/stat.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -6,17 +7,28 @@
 #include <unistd.h>
 #include <string.h>
 
+
 static int num_dirs, num_regular;
 
 bool is_dir(const char* path) {
+	struct stat buf;
+
+	// if stat actually works
+	if (stat(path, &buf) == 0){
+		return S_ISDIR(buf.st_mode);
+	} else {
+		printf("error in stat function");
+		return 0;
+	}
+}
+
   /*
    * Use the stat() function (try "man 2 stat") to determine if the file
    * referenced by path is a directory or not.  Call stat, and then use
-   * S_ISDIR to see if the file is a directory. Make sure you check the
+   * S_ISDIR to see if the file is a dir+ectory. Make sure you check the
    * return value from stat in case there is a problem, e.g., maybe the
    * the file doesn't actually exist.
    */
-}
 
 /* 
  * I needed this because the multiple recursion means there's no way to
@@ -25,6 +37,42 @@ bool is_dir(const char* path) {
 void process_path(const char*);
 
 void process_directory(const char* path) {
+	num_dirs++;
+	DIR *dir;
+	// string to store our path for recursive calls
+	//char* current_path = (char*)calloc(sizeof(char), PATH_MAX);
+       	struct dirent *dp;
+
+	chdir(path);
+	dir = opendir(".");
+
+	// check to make sure we didn't open a null directory
+	if (dir == NULL) {
+		printf("Error, null directory provided to process_directory");
+		exit(1);
+	}
+	
+	// check to make sure readdir was successful 
+	dp = readdir(dir);
+	if(dp == NULL){
+		printf("Error, cannot read null directory");
+		exit(1);	
+	}
+	else{	
+	while ((dp = readdir(dir)) != NULL) {
+		// avoiding infinite looping by disregarding . and .. file names
+		if( (strcmp(dp->d_name,".") != 0) && (strcmp(dp->d_name,"..") != 0)){
+			process_path(dp->d_name);
+		}
+	}
+	}
+	chdir("..");
+	
+	closedir(dir);
+	
+}
+
+
   /*
    * Update the number of directories seen, use opendir() to open the
    * directory, and then use readdir() to loop through the entries
@@ -36,9 +84,9 @@ void process_directory(const char* path) {
    * with a matching call to chdir() to move back out of it when you're
    * done.
    */
-}
 
 void process_file(const char* path) {
+	num_regular++;
   /*
    * Update the number of regular files.
    */
